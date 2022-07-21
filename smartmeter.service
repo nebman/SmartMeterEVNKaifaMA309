@@ -1,0 +1,16 @@
+[Unit]
+Description=EVN Smartmeter
+After=multi-user.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+EnvironmentFile=/home/pi/SmartMeterEVNKaifaMA309/.env
+User=pi
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/SmartMeterEVNKaifaMA309/EvnSmartmeterMQTTKaifaMA309.py
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

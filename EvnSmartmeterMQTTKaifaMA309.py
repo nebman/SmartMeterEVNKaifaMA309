@@ -9,22 +9,26 @@ import paho.mqtt.client as mqtt
 from gurux_dlms.GXDLMSTranslator import GXDLMSTranslator
 from gurux_dlms.GXDLMSTranslatorMessage import GXDLMSTranslatorMessage
 from bs4 import BeautifulSoup
+import json
+import os
 
-# EVN Schlüssel eingeben zB. "36C66639E48A8CA4D6BC8B282A793BBB"
-evn_schluessel = "dein_Schlüssel"
+# EVN Schlüssel in eingeben (SMARTMETER_KEY)
+evn_schluessel = os.environ.get('SMARTMETER_KEY')
 
-#MQTT Verwenden (True | False)
-useMQTT = False
+#MQTT Verwenden (USE_MQTT)
+useMQTT = os.environ.get('USE_MQTT').upper() == "TRUE"
 
-#MQTT Broker IP adresse Eingeben ohne Port!
-mqttBroker = "192.168.1.10"
-mqttuser =""
-mqttpasswort = ""
-#Aktuelle Werte auf Console ausgeben (True | False)
-printValue = True
+#MQTT Broker MQTT_HOST MQTT_USER MQTT_PASS!
+mqttBroker =            os.environ.get('MQTT_HOST')
+mqttuser =              os.environ.get('MQTT_USER')
+mqttpasswort =          os.environ.get('MQTT_PASS')
+useHassAutoDiscovery =  os.environ.get('HASS_AUTO_DISCOVERY').upper() == "TRUE"
+
+#Aktuelle Werte auf Console ausgeben (PRINT_VALUE)
+printValue = os.environ.get('PRINT_VALUE').upper() == "TRUE"
 
 #Comport Config/Init
-comport = "/dev/ttyUSB0"
+comport = os.environ.get("SERIAL_PORT")
 
 
 #MQTT Init
@@ -33,10 +37,22 @@ if useMQTT:
         client = mqtt.Client("SmartMeter")
         client.username_pw_set(mqttuser, mqttpasswort)
         client.connect(mqttBroker, port=1883)
+        if useHassAutoDiscovery:
+            client.publish("homeassistant/sensor/evn_smartmeter_momentanleistung/config", '{"name": "EVN Smartmeter Momentanleistung", "device": {"name": "EVN Smartmeter"}, "device_class": "energy", "state_topic": "Smartmeter/Momentanleistung", "state_class": "measurement",      "unit_of_measurement": "W"}' )
+            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergien/config"    , '{"name": "EVN Smartmeter Einspeisung",      "device": {"name": "EVN Smartmeter"}, "device_class": "energy", "state_topic": "Smartmeter/WirkenergieN",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}') 
+            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergiep/config"    , '{"name": "EVN Smartmeter Bezug",            "device": {"name": "EVN Smartmeter"}, "device_class": "energy", "state_topic": "Smartmeter/WirkenergieP",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}')
+
     except:
         print("Die Ip Adresse des Brokers ist falsch!")
         sys.exit()
 
+
+# InfluxDB Init
+useInflux = os.environ.get("USE_INFLUX").upper() == "TRUE"
+if useInflux:
+    from influxdb import InfluxDBClient
+    influx = InfluxDBClient(host=os.environ.get("INFLUX_HOST"), port=8086)
+    influx.switch_database(os.environ.get("INFLUX_DB"))
 
 
 tr = GXDLMSTranslator()
@@ -62,7 +78,9 @@ while 1:
         pdu.clear()
         xml += tr.messageToXml(msg)
 
-    soup = BeautifulSoup(xml, 'lxml')
+    #print(xml)
+
+    soup = BeautifulSoup(xml, 'html.parser')
 
     results_32 = soup.find_all('uint32')
     results_16 = soup.find_all('uint16')
@@ -154,5 +172,27 @@ while 1:
 
     #   sys.exit()
 
+    if useInflux:
+        m = {
+            "measurement": "EVN_Smartmeter",
+            "fields": {
+                "WirkenergieP": WirkenergieP,
+                "WirkenergieN": WirkenergieN,
+                "MomentanleistungP": MomentanleistungP,
+                "MomentanleistungN": MomentanleistungN,
+                "Momentanleistung": MomentanleistungP - MomentanleistungN,
+                "SpannungL1": SpannungL1,
+                "SpannungL2": SpannungL2,
+                "SpannungL3": SpannungL3,
+                "StromL1": StromL1,
+                "StromL2": StromL2,
+                "StromL3": StromL3,
+                "Leistungsfaktor": Leistungsfaktor
+            }
+        }
 
+        try:
+            influx.write_points([m])
+        except:
+            print("Fehler beim Schreiben in InfluxDB")
 
