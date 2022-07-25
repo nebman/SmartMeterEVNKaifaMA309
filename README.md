@@ -1,5 +1,11 @@
-# Alle Infos zu diesem Projekt befinden sich auf meinem Blog
-https://www.michaelreitbauer.at/blog
+# Einleitung
+
+Dies ist ein Fork von https://github.com/greenMikeEU/SmartMeterEVNKaifaMA309 mit folgenden Änderungen:
+
+* Home-Assistant MQTT-Auto-Discovery (Die Sensoren Momentanleistung, sowie beide Zähler tauchen automatisch in Home-Assistant ohne Konfiguration auf, wenn MQTT schon eingerichtet ist)
+* Integrierter Datenupload nach InfluxDB (alle Werte in einem Paket)
+* Konfiguration über `.env` Datei ohne editieren des Codes
+* systemd Beispieldatei enthalten (inkl. Autorestart bei Verbindungsfehlern)
 
 
 # SmartMeterEVN
@@ -17,15 +23,46 @@ Smart Meter werden von der Netz NÖ GmbH eingebaut, auf Basis der gesetzlichen F
     * Zählernummer
     * Handynummer
 
-
-
-
 ### Zähler Hersteller
 * Kaifa Drehstromzähler MA309
 
 
-### Unterstützung
-Spendenlink: https://www.paypal.me/greenMikeEU
+### Installation 
+
+```
+cd ~pi
+git clone https://github.com/nebman/SmartMeterEVNKaifaMA309
+```
+
+### Berechtigung pi Benutzer für die serielle Schnittstelle
+```
+sudo adduser pi dialout
+```
+
+### Python + Pakete
+
+```
+sudo apt install python3 idle3 python3-pip
+sudo pip3 install -U gurux-dlms beautifulsoup4 paho-mqtt lxml pyserial cryptography influxdb
+```
+
+### Konfigurationsdatei
+
+```
+cd SmartMeterEVNKaifaMA309
+cp .env-sample .env
+nano .env
+```
+
+### Installation systemd-service:
+```
+sudo cp smartmeter.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start smartmeter.service
+```
+Logs abrufbar über `journalctl -xe -u smartmeter.service `
+
+
 
 ## License
 
