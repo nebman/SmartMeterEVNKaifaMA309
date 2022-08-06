@@ -38,9 +38,9 @@ if useMQTT:
         client.username_pw_set(mqttuser, mqttpasswort)
         client.connect(mqttBroker, port=1883)
         if useHassAutoDiscovery:
-            client.publish("homeassistant/sensor/evn_smartmeter_momentanleistung/config", '{"name": "EVN Smartmeter Momentanleistung", "device_class": "energy", "state_topic": "Smartmeter/Momentanleistung", "state_class": "measurement",      "unit_of_measurement": "W"}' )
-            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergien/config"    , '{"name": "EVN Smartmeter Einspeisung",      "device_class": "energy", "state_topic": "Smartmeter/WirkenergieN",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}') 
-            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergiep/config"    , '{"name": "EVN Smartmeter Bezug",            "device_class": "energy", "state_topic": "Smartmeter/WirkenergieP",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}')
+            client.publish("homeassistant/sensor/evn_smartmeter_momentanleistung/config", '{"name": "EVN Smartmeter Momentanleistung", "device_class": "energy", "state_topic": "Smartmeter/Momentanleistung", "state_class": "measurement",      "unit_of_measurement": "W"}' , retain=True)
+            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergien/config"    , '{"name": "EVN Smartmeter Einspeisung",      "device_class": "energy", "state_topic": "Smartmeter/WirkenergieN",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}', retain=True) 
+            client.publish("homeassistant/sensor/evn_smartmeter_wirkenergiep/config"    , '{"name": "EVN Smartmeter Bezug",            "device_class": "energy", "state_topic": "Smartmeter/WirkenergieP",     "state_class": "total_increasing", "unit_of_measurement": "Wh"}', retain=True)
 
     except:
         print("Die Ip Adresse des Brokers ist falsch!")
